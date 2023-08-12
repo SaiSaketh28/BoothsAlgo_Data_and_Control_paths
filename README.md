@@ -1,5 +1,8 @@
 # Booths_Algorithm_Data_and_Control_paths:
 
+# State Diagram 
+![State Diagram Of Booths Algorithm Implementation](<Flowchart (1).jpeg>)
+
 # Monitor Output of the Test Bench:
 # ------------------------------------------------------------
 * Q = 8; M = -9
