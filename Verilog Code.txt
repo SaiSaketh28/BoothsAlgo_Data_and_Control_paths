@@ -1,0 +1,184 @@
+
+// Counter module
+
+module counter(input clock,input load_counter,output reg [3:0] count,input dec);
+always @ (posedge clock)
+    begin
+        if(load_counter == 1'b1)
+            count[3:0] <= 4'b1000;
+        else if(dec == 1'b1)
+            count <= count-1;
+    end
+endmodule
+
+// Arithmetic Unit
+
+module alu(input [7:0] A, input [7:0] B,input sel,output reg [7:0]out);
+always @(*)
+begin
+    if(sel == 1'b0) out <= A+B;
+    else if(sel == 1'b1) out <= A-B;
+end
+endmodule
+
+// Shift register
+
+module shift_register(input signed [7:0]A,input load_A,input s_in,input clock,input shift,output reg signed[7:0]Y,input clear);
+always @ (posedge clock)
+    begin
+        if(clear == 1'b1) Y <=0;
+        else if(load_A == 1'b1)
+        Y <= A;
+        else if(shift == 1'b1)
+        begin
+        Y[7:0] <= {s_in,Y[7:1]};
+        end
+    end
+endmodule
+
+// Shift register
+
+module shift_register1(input signed[7:0]A,input load_A,input clock,input shift,output reg signed [7:0]Y,input clear);
+always @ (posedge clock)
+    begin
+        if(clear == 1'b1) Y <=0;
+        else if(load_A == 1'b1)
+        Y <= A;
+        else if(shift == 1'b1)
+        begin
+        Y[7:0] <= {Y[7],Y[7:1]};
+        end
+    end
+endmodule
+
+// Bit register
+
+module bit_register(input A,input clear,input clock,output reg Y,input signal);
+always @ (posedge clock)
+    begin
+        if(clear == 1'b1)
+            Y <=0;
+        else if(signal == 1'b1)
+            Y <= A;
+    end
+endmodule
+
+// Parallel In Parallel Output register
+
+module PIPO_register (input [7:0]A,input load_A,input clock,output reg [7:0]Y);
+always @ (posedge clock)
+    begin
+        if(load_A)
+        Y <= A;
+    end
+endmodule
+
+// Comparator module
+
+module comparator( A,  B, signal, clock, Y);
+input A,B,signal,clock;
+output reg [1:0]Y;
+always @(posedge clock)
+    begin
+        if(signal)
+            begin
+                if(A == 0 && B == 1)
+                Y[1:0] <= 2'b00;
+                else if(A == 1 && B == 0)
+                 Y[1:0] <= 2'b01;
+                else if((A == 1 && B == 1) || (A == 0 && B == 0))
+                 Y[1:0] <= 2'b10;
+            end
+    end
+endmodule
+
+// Data out module
+
+module data_view(A,B,C,clock,done);
+input [7:0]A,B;
+input clock;
+input done;
+output reg [15:0]C;
+always@ (posedge clock )
+        C[15:0] <= {A[7:0],B[7:0]};
+endmodule
+
+// Data Path module
+
+module data_path(data_in_Q,data_in_M,load_A,load_Q,load_M,clear_A,clear_Q,clear_bitr,shift_A,shift_Q,sel,dec,load_counter,clock,comp_signal,select,bit_signal,count,done,product);
+wire    [7:0] Bus_A,Bus_Q,Bus_M,Bus_Z;
+output [3:0] count;
+output signed [15:0] product;
+wire connect1,connect2;
+wire q0;
+input load_A,load_Q,load_M,clear_A,clear_Q,clear_bitr,shift_A,shift_Q,dec,load_counter,clock,done;
+input sel;
+input signed [7:0] data_in_Q,data_in_M;
+input comp_signal,bit_signal;
+output  [1:0]select;
+shift_register1 A(Bus_Z[7:0],load_A,clock,shift_A,Bus_A[7:0],clear_A);
+shift_register Q(data_in_Q[7:0],load_Q,Bus_A[0],clock,shift_Q,Bus_Q[7:0],clear_Q);
+bit_register Q0(Bus_Q[0],clear_bitr,clock,q0,bit_signal);
+PIPO_register M(data_in_M[7:0],load_M,clock,Bus_M[7:0]);
+alu Arithmetic_unit(Bus_A[7:0],Bus_M[7:0],sel,Bus_Z[7:0]);
+counter countr(clock,load_counter,count[3:0],dec);
+comparator comp(Bus_Q[0],q0,comp_signal,clock,select[1:0]);
+data_view dout(Bus_A[7:0],Bus_Q[7:0],product[15:0],clock);
+endmodule
+
+// Control Path module
+
+module control_signals( load_A, clear_A, shift_A, load_Q, clear_Q, shift_Q, load_M, clear_bitr,start, dec, load_counter, done,clock,sel,comp_signal,select,bit_signal,state,count);
+output reg load_A,clear_A,shift_A,load_Q,clear_Q,shift_Q,load_M,clear_bitr,dec,load_counter,comp_signal,bit_signal;
+output reg  sel;
+input start,clock;
+output reg done;
+input [1:0]select;
+output reg [2:0] state;
+input [3:0] count;
+parameter s0 = 3'b000,s1 = 3'b001,s2 = 3'b010,s3 = 3'b011,s4 = 3'b100,s5 = 3'b101,s6 = 3'b110;
+always @ (posedge clock)
+    begin
+        case(state)
+            s0: if(start) state <= s1;
+            s1: state <= s2;
+            s2: #2 begin  if(select[1:0] == 2'b00) state <= s3;
+                      else if(select[1:0] == 2'b01) state <= s4;
+                      else  if(select[1:0] == 2'b10) state <= s5;  end
+            s3: state <= s5;
+            s4: state <= s5;
+            s5: #2 if(count[3:0] == 4'b0000) state <=s6; 
+                else state <= s2;     
+            s6: state <= s0;
+            default: state <= s0;
+        endcase   
+    end
+ always @ (state)
+    begin
+    case(state)
+    s0: begin  clear_A <=1; load_A <=0; shift_A <=0; clear_Q <=1; load_Q <=0; shift_Q <=0;load_M <=0; clear_bitr <=1; done<=0; load_counter <=0; dec <=0; bit_signal<=0; end
+    s1: begin  clear_A <=0; load_A <=0; shift_A <=0; clear_Q <=0; load_Q<= 1; shift_Q <=0;load_M <=1; clear_bitr <=0; load_counter<=1; end
+    s2: begin  clear_A <=0; clear_bitr <=0; load_counter <=0; load_M <=0; load_Q<=0; comp_signal <=1; shift_A<=0; shift_Q<=0; bit_signal <=0; dec<=0;end
+    s3: begin  sel =1'b0; load_A =1; bit_signal<=0; shift_A<=0; shift_Q<=0; end
+    s4: begin  sel =1'b1; load_A =1; bit_signal<=0; shift_A<=0; shift_Q<=0; end
+    s5: begin  load_A<=0;shift_A <=1;shift_Q <=1;dec <=1;bit_signal<=1;comp_signal <=0;sel <= 1'bx;end
+    s6: begin  done<=1;load_counter <=1;shift_Q <=0;shift_A<=0;bit_signal<=0;dec<=0;end
+    default: begin   clear_A <=0; load_A <=0; shift_A <=0; clear_Q <=0; load_Q <=0; shift_Q <=0;load_M <=0; clear_bitr <=0;done<=0;load_counter <=0;dec <=0;bit_signal<=0; end
+    endcase
+    end
+endmodule
+
+// Combined module of Data Path and Control Path
+
+module booths_algorithm(data_in_Q,data_in_M,start,clock,product);
+input signed [7:0] data_in_Q,data_in_M;
+output signed  [15:0]product;
+input start;
+input clock;
+wire load_A,load_Q,load_M,clear_A,clear_Q,clear_bitr,shift_A,shift_Q,sel,dec,load_counter,comp_signal,bit_signal,done;
+wire [1:0] select;
+wire [3:0] count;
+wire [2:0] state;
+data_path DP(data_in_Q,data_in_M,load_A,load_Q,load_M,clear_A,clear_Q,clear_bitr,shift_A,shift_Q,sel,dec,load_counter,clock,comp_signal,select,bit_signal,count,done,product);
+control_signals CON( load_A, clear_A, shift_A, load_Q, clear_Q, shift_Q, load_M, clear_bitr,start, dec, load_counter, done,clock,sel,comp_signal,select,bit_signal,state,count);
+endmodule

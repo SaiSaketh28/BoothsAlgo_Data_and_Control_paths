@@ -1,0 +1,25 @@
+
+// Test Bench 
+
+module test_bench();
+reg signed [7:0] data_in_Q,data_in_M;
+wire signed [15:0]product;
+reg start;
+reg clock;
+booths_algorithm DUT(data_in_Q,data_in_M,start,clock,product);
+
+initial
+    begin
+        clock = 1'b0;
+        start = 1'b1;
+    end
+    always #5 clock = ~clock;
+    initial
+        begin
+           $monitor($time,"A = %b, Q = %b,Product = %d",DUT.DP.Bus_A,DUT.DP.Bus_Q,DUT.product);
+            #15 start <=0;data_in_M <=-9; data_in_Q <=8;
+            #230 start <=1;
+            #245 data_in_M <=15;data_in_Q<=6;
+            #890 $finish;
+        end
+endmodule
