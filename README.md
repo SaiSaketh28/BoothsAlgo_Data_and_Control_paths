@@ -2,7 +2,7 @@
 
 # State Diagram 
 ![State Diagram Of Booths Algorithm Implementation](<Flowchart (1).jpeg>)
-
+![Path Flow](<Blank diagram.jpeg>)
 # Monitor Output of the Test Bench:
 # ------------------------------------------------------------
 * Q = 8; M = -9
