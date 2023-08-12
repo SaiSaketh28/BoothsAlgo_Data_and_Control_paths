@@ -1,5 +1,6 @@
 # Booths_Algorithm_Data_and_Control_paths:
-
+* Booth algorithm gives a procedure for multiplying binary integers in signed 2’s complement representation in efficient way. Here we implement the algorithm using Verilog (Hardware Description Language).
+* Tools Used - Xilinx (Vivado)
 # State Diagram 
 ![State Diagram Of Booths Algorithm Implementation](<Flowchart (1).jpeg>)
 ![Path Flow](<Blank diagram.jpeg>)
